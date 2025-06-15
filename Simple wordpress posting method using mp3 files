@@ -1,0 +1,102 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c912f874-fcfc-45a4-888b-e3dbf37f3a7c",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "title": "={{ $json.mp3Url }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        700,
+        0
+      ],
+      "id": "fdd6f825-9dc0-4652-8d18-1c3d337136e7",
+      "name": "Wordpress",
+      "credentials": {
+        "wordpressApi": {
+          "id": "Txzl1Y62LEf5Xh7E",
+          "name": "Luke WordPress Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://feeds.buzzsprout.com/731180.rss",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "e449507b-001a-453a-a9fe-30fb4c6e8a1a",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const xml = items[0].json.data;  // Adjust this if needed\n\nconst regex = /<enclosure[^>]+url=\"([^\"]+\\.mp3)\"/g;\nconst matches = [...xml.matchAll(regex)];\n\nif (matches.length === 0) return [];\n\nreturn [{\n  json: {\n    mp3Url: matches[0][1],  // Only the first MP3 URL\n    index: 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "644b0488-bf23-4119-94bc-83b1605c97f0",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Wordpress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f318f1eeb582bef69a56797ad1f28184a54cfe51b0e461ee190c5740946ea07e"
+  }
+}
