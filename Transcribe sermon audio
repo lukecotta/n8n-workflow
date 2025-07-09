@@ -1,0 +1,185 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d3189430-6da5-4051-848a-11657fd24566",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "750ffe6d-a249-4df4-9ff0-40f7782aa716",
+              "name": "sermon_audio",
+              "value": "YOUR_AUDIO_URL_HERE",
+              "type": "string"
+            },
+            {
+              "id": "25c73711-ccd2-42c8-93d6-3b2205113de2",
+              "name": "speaker_name",
+              "value": "SPEAKER_NAME_HERE",
+              "type": "string"
+            },
+            {
+              "id": "0601093f-7f86-4cb2-98a2-1e449953a20a",
+              "name": "sermon_date",
+              "value": "YYYY-MM-DD",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "id": "cc04dfd3-6adc-44f1-b069-ff343d7f5c66",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json['sermon_audio'] }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "e0b1cb20-f454-4dad-b5a6-8da7e79a2fa2",
+      "name": "Download Audio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-large-v3"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "c021cf2f-7743-4259-9947-4d12a3e83c38",
+      "name": "Groq Whisper",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_HEADER_AUTH_ID",
+          "name": "YOUR_HEADER_AUTH_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_WORDPRESS_SITE_HERE/wp-json/wp/v2/posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"title\": \"Sample Sermon by {{ $('Edit Fields').item.json.speaker_name }}\",\n  \"content\": \"{{ $json.text }}\",\n  \"status\": \"publish\",\n  \"acf\": {\n    \"speaker_name\": \"{{ $('Edit Fields').item.json.speaker_name }}\",\n    \"sermon_audio\": \"{{ $('Edit Fields').item.json.sermon_audio }}\",\n    \"sermon_date\": \"{{ $('Edit Fields').item.json.sermon_date }}\"\n  }\n}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        0
+      ],
+      "id": "43733a5f-25cb-4e88-881a-b94498a7cd37",
+      "name": "Wordpress Post",
+      "credentials": {
+        "wordpressApi": {
+          "id": "YOUR_WORDPRESS_CREDENTIAL_ID",
+          "name": "YOUR_WORDPRESS_CREDENTIAL_NAME"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Groq Whisper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Whisper": {
+      "main": [
+        [
+          {
+            "node": "Wordpress Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f318f1eeb582bef69a56797ad1f28184a54cfe51b0e461ee190c5740946ea07e"
+  }
+}
