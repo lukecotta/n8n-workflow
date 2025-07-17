@@ -1,36 +1,31 @@
 {
   "nodes": [
     {
-      "parameters": {},
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        0,
-        0
-      ],
-      "id": "d3189430-6da5-4051-848a-11657fd24566",
-      "name": "When clicking ‘Execute workflow’"
-    },
-    {
       "parameters": {
         "assignments": {
           "assignments": [
             {
               "id": "750ffe6d-a249-4df4-9ff0-40f7782aa716",
               "name": "sermon_audio",
-              "value": "YOUR_AUDIO_URL_HERE",
+              "value": "={{ $json.enclosure.url }}",
               "type": "string"
             },
             {
               "id": "25c73711-ccd2-42c8-93d6-3b2205113de2",
               "name": "speaker_name",
-              "value": "SPEAKER_NAME_HERE",
+              "value": "={{ $json.itunes.author }}",
               "type": "string"
             },
             {
               "id": "0601093f-7f86-4cb2-98a2-1e449953a20a",
               "name": "sermon_date",
-              "value": "YYYY-MM-DD",
+              "value": "={{ $json.pubDate }}",
+              "type": "string"
+            },
+            {
+              "id": "6115a61b-2781-4fd6-b0ae-bb7ffb8aa5a7",
+              "name": "sermon_title",
+              "value": "={{ $json.title }}",
               "type": "string"
             }
           ]
@@ -40,8 +35,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        220,
-        0
+        240,
+        20
       ],
       "id": "cc04dfd3-6adc-44f1-b069-ff343d7f5c66",
       "name": "Edit Fields"
@@ -60,8 +55,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        440,
-        0
+        460,
+        20
       ],
       "id": "e0b1cb20-f454-4dad-b5a6-8da7e79a2fa2",
       "name": "Download Audio"
@@ -79,7 +74,7 @@
             {
               "parameterType": "formBinaryData",
               "name": "file",
-              "inputDataFieldName": "data"
+              "inputDataFieldName": "file"
             },
             {
               "name": "model",
@@ -92,57 +87,81 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        660,
-        0
+        900,
+        20
       ],
       "id": "c021cf2f-7743-4259-9947-4d12a3e83c38",
       "name": "Groq Whisper",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "YOUR_HEADER_AUTH_ID",
-          "name": "YOUR_HEADER_AUTH_NAME"
+          "id": "Yu6y3cbhRXN1yIIV",
+          "name": "Header Auth account 5"
         }
       }
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://YOUR_WORDPRESS_SITE_HERE/wp-json/wp/v2/posts",
+        "url": "https://lukecotta2025.mystagingwebsite.com/wp-json/wp/v2/posts",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={\n  \"title\": \"Sample Sermon by {{ $('Edit Fields').item.json.speaker_name }}\",\n  \"content\": \"{{ $json.text }}\",\n  \"status\": \"publish\",\n  \"acf\": {\n    \"speaker_name\": \"{{ $('Edit Fields').item.json.speaker_name }}\",\n    \"sermon_audio\": \"{{ $('Edit Fields').item.json.sermon_audio }}\",\n    \"sermon_date\": \"{{ $('Edit Fields').item.json.sermon_date }}\"\n  }\n}"
+        "body": "={\n  \"title\": \"Sample Sermon by {{ $('Edit Fields').item.json.speaker_name }}\",\n  \"content\": \"{{ $json.text }}\",\n  \"status\": \"publish\",\n  \"acf\": {\n    \"speaker_name\": \"{{ $('Edit Fields').item.json.speaker_name }}\",\n    \"sermon_audio\": \"{{ $('Edit Fields').item.json.sermon_audio }}\",\n    \"sermon_date\": \"{{ $('Edit Fields').item.json.sermon_date }}\"\n  }\n}",
+        "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        900,
-        0
+        1140,
+        20
       ],
       "id": "43733a5f-25cb-4e88-881a-b94498a7cd37",
       "name": "Wordpress Post",
       "credentials": {
         "wordpressApi": {
-          "id": "YOUR_WORDPRESS_CREDENTIAL_ID",
-          "name": "YOUR_WORDPRESS_CREDENTIAL_NAME"
+          "id": "Txzl1Y62LEf5Xh7E",
+          "name": "Luke WordPress Account"
         }
       }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyWeek",
+              "minute": 15
+            }
+          ]
+        },
+        "feedUrl": "https://feeds.buzzsprout.com/731180.rss"
+      },
+      "type": "n8n-nodes-base.rssFeedReadTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        20
+      ],
+      "id": "278b3d1e-4fd9-4554-84f8-1e682ea434de",
+      "name": "RSS Feed Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item;\n\n// Move audio file from `data` to `file`\nitem.binary = item.binary || {};\nitem.binary[\"file\"] = { ...item.binary[\"data\"] };\n\n//Set correct metadata\nitem.binary[\"file\"].fileName = \"sermon.mp3\";\nitem.binary[\"file\"].mimeType = \"audio/mpeg\";\n\n// Remove the original binary data to avoid sending extra\ndelete item.binary[\"data\"];\n\nreturn item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        20
+      ],
+      "id": "d2389396-eaf7-47e3-aab2-3ad29c0942cc",
+      "name": "Code"
     }
   ],
   "connections": {
-    "When clicking ‘Execute workflow’": {
-      "main": [
-        [
-          {
-            "node": "Edit Fields",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Edit Fields": {
       "main": [
         [
@@ -158,7 +177,7 @@
       "main": [
         [
           {
-            "node": "Groq Whisper",
+            "node": "Code",
             "type": "main",
             "index": 0
           }
@@ -170,6 +189,28 @@
         [
           {
             "node": "Wordpress Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Feed Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Groq Whisper",
             "type": "main",
             "index": 0
           }
