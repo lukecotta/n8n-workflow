@@ -36,9 +36,9 @@
       "typeVersion": 3.4,
       "position": [
         240,
-        20
+        0
       ],
-      "id": "cc04dfd3-6adc-44f1-b069-ff343d7f5c66",
+      "id": "01df7dc6-20c6-4678-af43-4caf4c036045",
       "name": "Edit Fields"
     },
     {
@@ -56,9 +56,9 @@
       "typeVersion": 4.2,
       "position": [
         460,
-        20
+        0
       ],
-      "id": "e0b1cb20-f454-4dad-b5a6-8da7e79a2fa2",
+      "id": "494823c0-0aa5-400d-a457-3f8b1e5e24f9",
       "name": "Download Audio"
     },
     {
@@ -88,9 +88,9 @@
       "typeVersion": 4.2,
       "position": [
         900,
-        20
+        0
       ],
-      "id": "c021cf2f-7743-4259-9947-4d12a3e83c38",
+      "id": "e0375914-8890-430f-b932-fdae5ac8287e",
       "name": "Groq Whisper",
       "credentials": {
         "httpHeaderAuth": {
@@ -108,16 +108,16 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={\n  \"title\": \"Sample Sermon by {{ $('Edit Fields').item.json.speaker_name }}\",\n  \"content\": \"{{ $json.text }}\",\n  \"status\": \"publish\",\n  \"acf\": {\n    \"speaker_name\": \"{{ $('Edit Fields').item.json.speaker_name }}\",\n    \"sermon_audio\": \"{{ $('Edit Fields').item.json.sermon_audio }}\",\n    \"sermon_date\": \"{{ $('Edit Fields').item.json.sermon_date }}\"\n  }\n}",
+        "body": "={{ JSON.stringify({\ntitle: $(\"Edit Fields\").item.json.sermon_title,\ncontent: \"## Summary\\n\\n\" + $(\"Groq Summary\").item.json.choices[0].message.content + \"\\n\\n## Full Sermon\\n\\n\" + $(\"Paragraph breaker\").item.json.text,\nexcerpt: $(\"Groq Summary\").item.json.choices[0].message.content,\nstatus: \"publish\",\nacf: {\nspeaker_name: $(\"Edit Fields\").item.json.speaker_name,\nsermon_audio: $(\"Edit Fields\").item.json.sermon_audio,\nsermon_date: $(\"Edit Fields\").item.json.sermon_date,\nsermon_summary: $(\"Groq Summary\").item.json.choices[0].message.content\n}\n}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1140,
-        20
+        1580,
+        0
       ],
-      "id": "43733a5f-25cb-4e88-881a-b94498a7cd37",
+      "id": "34400067-d4cb-4675-a6c4-288f8b861d6b",
       "name": "Wordpress Post",
       "credentials": {
         "wordpressApi": {
@@ -142,9 +142,9 @@
       "typeVersion": 1,
       "position": [
         0,
-        20
+        0
       ],
-      "id": "278b3d1e-4fd9-4554-84f8-1e682ea434de",
+      "id": "b0f275c4-de75-40ab-9ddd-61ffebbda81e",
       "name": "RSS Feed Trigger"
     },
     {
@@ -155,10 +155,49 @@
       "typeVersion": 2,
       "position": [
         680,
-        20
+        0
       ],
-      "id": "d2389396-eaf7-47e3-aab2-3ad29c0942cc",
+      "id": "967c1288-b786-473c-8728-9f777b21123c",
       "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"messages\": [\n    {\n      \"role\": \"system\", \n      \"content\": \"You are an expert at analyzing Christian sermons. Focus on extracting the pastor's main points, key arguments, and practical applications rather than just general themes.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Summarize this sermon in exactly 200 words, including scripture and main points:\\n\\n{{ $('Groq Whisper').item.json.text }}\"\n    }\n  ],\n  \"max_tokens\": 500,\n  \"temperature\": 0.3\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        0
+      ],
+      "id": "b0d8ab9e-1de6-42e5-be02-4982fa3465c2",
+      "name": "Groq Summary",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Yu6y3cbhRXN1yIIV",
+          "name": "Header Auth account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const transcript = $json.text;\n\nlet formatted = transcript\n  .replace(/\\. Turn with me /g, '.\\n\\nTurn with me ')\n  .replace(/\\. Let's pray/g, '.\\n\\nLet\\'s pray')\n  .replace(/\\. Well, if /g, '.\\n\\nWell, if ')\n  .replace(/\\. See, /g, '.\\n\\nSee, ')\n  .replace(/\\. And the /g, '.\\n\\nAnd the ')\n  .replace(/\\. This being /g, '.\\n\\nThis being ')\n  .replace(/\\. Amen/g, '.\\n\\nAmen')\n  .replace(/Amen\\./g, 'Amen.\\n\\n');\n\nreturn { json: { text: formatted } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "f9d2d686-1844-424c-9d71-56b6b573f45f",
+      "name": "Paragraph breaker"
     }
   ],
   "connections": {
@@ -188,7 +227,7 @@
       "main": [
         [
           {
-            "node": "Wordpress Post",
+            "node": "Paragraph breaker",
             "type": "main",
             "index": 0
           }
@@ -216,11 +255,32 @@
           }
         ]
       ]
+    },
+    "Groq Summary": {
+      "main": [
+        [
+          {
+            "node": "Wordpress Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paragraph breaker": {
+      "main": [
+        [
+          {
+            "node": "Groq Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "pinData": {},
   "meta": {
-    "templateCredsSetupCompleted": true,
     "instanceId": "f318f1eeb582bef69a56797ad1f28184a54cfe51b0e461ee190c5740946ea07e"
   }
 }
